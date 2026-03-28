@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwinSpace - Dijital İkiz Simülasyonu | TUA Astro Hackathon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #050509;
+            --card-bg: #10101a;
+            --text-color: #e0e0e0;
+            --primary-accent: #00f2fe; /* Neon Mavi */
+            --secondary-accent: #4facfe;
+            --warning: #ff3860;
+            --success: #23d160;
+            --border-color: #2a2a40;
+            --font-main: 'Roboto', sans-serif;
+            --font-digital: 'Orbitron', sans-serif;
+        }
+
+        * { box-sizing: border-color; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); overflow-x: hidden; }
+
+        /* --- Header --- */
+        header { background: rgba(16, 16, 26, 0.95); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(5px); }
+        .logo { font-family: var(--font-digital); font-size: 1.8rem; color: var(--primary-accent); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary-accent); }
+        .tua-logo { height: 40px; }
+
+        /* --- Main Layout --- */
+        main { padding: 2rem 5%; display: grid; grid-template-columns: 280px 1fr 300px; gap: 2rem; align-items: start; }
+
+        /* --- Global Card Styling --- */
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,242,254,0.15); border-color: rgba(0,242,254,0.3); }
+        .card-header { font-family: var(--font-digital); color: var(--secondary-accent); font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .card-header i { font-size: 1.2rem; color: var(--primary-accent); }
+
+        /* --- Left Panel (Controls) --- */
+        .panel-left { grid-column: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+        .control-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.8rem; font-weight: bold; color: #aaa; font-size: 0.9rem; }
+        
+        input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: var(--border-color); border-radius: 3px; }
+        input[type="range"]::-webkit-slider-thumb { height: 18px; width: 18px; border-radius: 50%; background: var(--primary-accent); cursor: pointer; -webkit-appearance: none; margin-top: -6px; box-shadow: 0 0 10px var(--primary-accent); }
+
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-family: var(--font-digital); font-size: 1rem; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-primary { background: linear-gradient(45deg, var(--secondary-accent), var(--primary-accent)); color: #000; font-weight: bold; box-shadow: 0 4px 15px rgba(0,242,254,0.3); }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(0,242,254,0.5); transform: scale(1.02); }
+        .btn-danger { background: rgba(255, 56, 96, 0.1); color: var(--warning); border: 1px solid var(--warning); margin-top: 10px; }
+        .btn-danger:hover { background: rgba(255, 56, 96, 0.2); }
+
+        /* --- Center Panel (Visuals) --- */
+        .panel-center { grid-column: 2; display: flex; flex-direction: column; gap: 1.5rem; }
+        .twin-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .time-display { text-align: center; padding: 2rem; border: 2px dashed var(--border-color); border-radius: 10px; }
+        .time-display.active-twin { border-color: var(--primary-accent); background: rgba(0,242,254,0.03); }
+        .time-label { font-size: 0.9rem; color: #888; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .time-value { font-family: var(--font-digital); font-size: 2.8rem; color: var(--text-color); text-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        .time-unit { font-size: 1rem; color: #666; margin-left: 5px; }
+
+        .chart-container { height: 300px; position: relative; }
+
+        /* --- Right Panel (Telemetri) --- */
+        .panel-right { grid-column: 3; display: flex; flex-direction: column; gap: 1.5rem; }
+        .telemetry-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        .telemetry-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; background: rgba(255,255,255,0.03); border-radius: 6px; }
+        .telemetry-label { color: #999; font-size: 0.9rem; }
+        .telemetry-value { font-family: var(--font-digital); color: var(--primary-accent); font-size: 1.1rem; }
+        
+        .status-indicator { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        .status-dot { height: 12px; width: 12px; border-radius: 50%; background-color: var(--success); box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
+        .status-warning { color: var(--warning); }
+        .status-warning .status-dot { background-color: var(--warning); box-shadow: 0 0 10px var(--warning); }
+
+        /* --- Animations --- */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(35, 209, 96, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(35, 209, 96, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(35, 209, 96, 0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1100px) { main { grid-template-columns: 1fr; } .panel-left, .panel-center, .panel-right { grid-column: 1; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">TwinSpace</div>
+    <div style="color: #666; font-size: 0.9rem;">Dijital İkiz Simülasyon Platformu</div>
+</header>
+
+<main>
+    <div class="panel-left">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-sliders-h"></i>Görev Kontrol</div>
+            
+            <div class="control-group">
+                <label for="speedSlider">Hedef Hız (Lorentz Faktörü: <span id="lorentzVal" style="color:var(--primary-accent)">1.00</span>)</label>
+                <input type="range" id="speedSlider" min="0" max="0.99" step="0.01" value="0">
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#666; margin-top:5px;">
+                    <span>0c (Durgun)</span>
+                    <span>0.99c (Işık Hızı)</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="startBtn">Görevi Başlat</button>
+            <button class="btn btn-danger" id="resetBtn">Sıfırla</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-info-circle"></i>Dijital İkiz Nedir?</div>
+            <p style="font-size:0.9rem; color:#aaa; line-height:1.6;">Bu simülasyon, bir uzay aracının fiziksel durumu ile dijital modelini gerçek zamanlı karşılaştırır. Hız arttıkça, dijital ikizin (uzay gemisi) zamanı, fiziksel referansa (dünya) göre yavaşlar.</p>
+        </div>
+    </div>
+
+    <div class="panel-center">
+        <div class="card twin-comparison">
+            <div class="time-display" id="dunyaDisplay">
+                <div class="time-label">Fiziksel Referans (Dünya)</div>
+                <div class="time-value" id="dunyaTime">00:00</div>
+                <div class="time-unit">Saniye</div>
+            </div>
+            <div class="time-display active-twin" id="uzayDisplay">
+                <div class="time-label">Dijital İkiz (Uzay Gemisi)</div>
+                <div class="time-value" id="uzayTime">00:00</div>
+                <div class="time-unit">Saniye</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-chart-line"></i>Canlı Hız Telemetrisi</div>
+            <div class="chart-container">
+                <canvas id="speedChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-right">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-satellite-dish"></i>Telemetri Verileri</div>
+            <div class="telemetry-grid">
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Anlık Hız</span>
+                    <span class="telemetry-value"><span id="currentSpeed">0</span> c</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Kalan Yakıt</span>
+                    <span class="telemetry-value"><span id="currentFuel">100</span> %</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Mesafe (Dünya'dan)</span>
+                    <span class="telemetry-value"><span id="currentDistance">0</span> km</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">Motor İrtifası</span>
+                    <span class="telemetry-value"><span id="currentAltitude">350</span> km</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-heartbeat"></i>Sistem Sağlığı</div>
+            <div class="status-indicator" id="systemStatus">
+                <div class="status-dot"></div>
+                <span>Tüm Sistemler Nominal</span>
+            </div>
+            <p style="font-size:0.8rem; color:#666; margin-top:10px;">Veri Kaynağı: Dijital İkiz Modeli V1.2</p>
+        </div>
+    </div>
+</main>
+
+<script>
+    // --- Değişkenler ve Başlangıç Değerleri ---
+    let timerInterval;
+    let isRunning = false;
+    let dunyaSaniyesi = 0;
+    let uzaySaniyesi = 0;
+    let hiz = 0; // Işık hızının yüzdesi (0c - 0.99c)
+    let yakit = 100;
+    let mesafe = 0;
+    let carpan = 1; // Lorentz Faktörü
+
+    // DOM Elementleri
+    const speedSlider = document.getElementById('speedSlider');
+    const lorentzValText = document.getElementById('lorentzVal');
+    const dunyaTimeText = document.getElementById('dunyaTime');
+    const uzayTimeText = document.getElementById('uzayTime');
+    const currentSpeedText = document.getElementById('currentSpeed');
+    const currentFuelText = document.getElementById('currentFuel');
+    const currentDistanceText = document.getElementById('currentDistance');
+    const systemStatus = document.getElementById('systemStatus');
+    const startBtn = document.getElementById('startBtn');
+
+    // --- Chart.js Kurulumu (Canlı Grafik) ---
+    const ctx = document.getElementById('speedChart').getContext('2d');
+    const speedChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [], // Zaman etiketleri
+            datasets: [{
+                label: 'Anlık Hız (c)',
+                data: [],
+                borderColor: '#00f2fe',
+                backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4, // Kavisli çizgiler
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: false }, // X eksenini gizle (zaman akıyor)
+                y: { min: 0, max: 1, ticks: { color: '#666' }, grid: { color: '#2a2a40' } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // --- Fonksiyonlar ---
+
+    // 1. Zaman Genişlemesi Hesaplama (Lorentz Faktörü)
+    // Formül: t' = t * sqrt(1 - v^2/c^2) -> Biz burada carpan = sqrt(1-v^2) hesaplıyoruz.
+    function lorentzHesapla(v) {
+        if (v >= 1) return 0;
+        return Math.sqrt(1 - Math.pow(v, 2));
+    }
+
+    // 2. Ana Simülasyon Döngüsü (Her saniye çalışır)
+    function dizeyiGuncelle() {
+        dunyaSaniyesi++;
+        
+        // Uzay zamanı formüle göre daha yavaş akar
+        carpan = lorentzHesapla(hiz);
+        uzaySaniyesi += 1 * carpan;
+
+        // Telemetriyi güncelle
+        mesafe += (hiz * 299792); // Işık hızı yaklaşığı km/s
+        yakit -= (hiz * 0.1); // Hızla orantılı yakıt tüketimi
+
+        // UI Güncelleme
+        dunyaTimeText.innerText = saniyeyiFormatla(dunyaSaniyesi);
+        uzayTimeText.innerText = saniyeyiFormatla(uzaySaniyesi);
+        currentFuelText.innerText = Math.max(0, yakit).toFixed(1);
+        currentDistanceText.innerText = Math.floor(mesafe).toLocaleString('tr-TR');
+
+        // Yakıt kritik kontrolü
+        if (yakit <= 10 && yakit > 0) {
+            systemStatus.classList.add('status-warning');
+            systemStatus.querySelector('span').innerText = "Kritik Yakıt Seviyesi";
+        } else if (yakit <= 0) {
+            hiz = 0; // Yakıt bitti, gemi durdu
+            speedSlider.value = 0;
+            updateSpeedUI(0);
+            systemStatus.querySelector('span').innerText = "Görev Başarısız: Yakıt Tükendi";
+        }
+
+        // Grafiği Güncelle
+        updateChart(hiz);
+    }
+
+    // Yardımcı: Saniyeyi MM:SS formatına çevir
+    function saniyeyiFormatla(sn) {
+        let dak = Math.floor(sn / 60);
+        let s = Math.floor(sn % 60);
+        return `${dak.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // Yardımcı: Grafiğe yeni veri ekle
+    function updateChart(newSpeed) {
+        speedChart.data.labels.push(dunyaSaniyesi);
+        speedChart.data.datasets[0].data.push(newSpeed);
+        
+        // Grafikte sadece son 30 veriyi göster (kaydırma efekti)
+        if (speedChart.data.labels.length > 30) {
+            speedChart.data.labels.shift();
+            speedChart.data.datasets[0].data.shift();
+        }
+        speedChart.update('none'); // Animasyonsuz güncelle (performans için)
+    }
+
+    // Hız ile ilgili UI elementlerini güncelle
+    function updateSpeedUI(v) {
+        hiz = v;
+        currentSpeedText.innerText = v.toFixed(2);
+        let lFactor = lorentzHesapla(v);
+        lorentzValText.innerText = lFactor.toFixed(3);
+    }
+
+    // --- Event Listeners (Olay Dinleyiciler) ---
+
+    // Hız Slider'ı değiştiğinde
+    speedSlider.addEventListener('input', (e) => {
+        let newSpeed = parseFloat(e.target.value);
+        updateSpeedUI(newSpeed);
+    });
+
+    // Başlat / Durdur Butonu
+    startBtn.addEventListener('click', () => {
+        if (!isRunning) {
+            // BAŞLAT
+            isRunning = true;
+            startBtn.innerText = "Simülasyonu Durdur";
+            startBtn.classList.remove('btn-primary');
+            startBtn.classList.add('btn-danger'); // Durdurmak için kırmızı yap
+            startBtn.style.background = "rgba(255, 56, 96, 0.1)"; // Özel danger stili
+            startBtn.style.color = "var(--warning)";
+            startBtn.style.border = "1px solid var(--warning)";
+
+            timerInterval = setInterval(dizeyiGuncelle, 1000); // 1 saniyede bir çalıştır
+            systemStatus.querySelector('span').innerText = "Görev Aktif";
+        } else {
+            // DURDUR
+            isRunning = false;
+            startBtn.innerText = "Simülasyonu Devam Ettir";
+            startBtn.style = ""; // Stilleri sıfırla
+            startBtn.classList.remove('btn-danger');
+            startBtn.classList.add('btn-primary');
+            
+            clearInterval(timerInterval);
+            systemStatus.querySelector('span').innerText = "Görev Duraklatıldı";
+        }
+    });
+
+    // Sıfırla Butonu
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        isRunning = false;
+        clearInterval(timerInterval);
+        
+        // Değerleri sıfırla
+        dunyaSaniyesi = 0;
+        uzaySaniyesi = 0;
+        hiz = 0;
+        yakit = 100;
+        mesafe = 0;
+        speedSlider.value = 0;
+
+        // UI Sıfırla
+        dunyaTimeText.innerText = "00:00";
+        uzayTimeText.innerText = "00:00";
+        updateSpeedUI(0);
+        currentFuelText.innerText = "100";
+        currentDistanceText.innerText = "0";
+        startBtn.innerText = "Görevi Başlat";
+        startBtn.style = "";
+        startBtn.classList.remove('btn-danger');
+        startBtn.classList.add('btn-primary');
+        systemStatus.classList.remove('status-warning');
+        systemStatus.querySelector('span').innerText = "Tüm Sistemler Nominal";
+
+        // Grafiği temizle
+        speedChart.data.labels = [];
+        speedChart.data.datasets[0].data = [];
+        speedChart.update();
+    });
+
+    // İlk yüklemede UI'ı güncelle
+    updateSpeedUI(0);
+
+</script>
+</body>
+</html>
