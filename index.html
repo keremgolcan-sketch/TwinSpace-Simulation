@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>TwinSpace Simülasyonu</title>
+  <style>
+    body { font-family: Arial; text-align: center; background: #0b0f1a; color: white; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    .box { border: 1px solid white; padding: 20px; margin: 20px; }
+  </style>
+</head>
+<body>
+
+<h1>🚀 TwinSpace Simülasyonu</h1>
+<p>Rolünü seç:</p>
+
+<button onclick="start('dunya')">🌍 Dünya İkizi</button>
+<button onclick="start('uzay')">🛰️ Uzay İkizi</button>
+
+<div id="game" class="box" style="display:none;">
+  <h2 id="role"></h2>
+
+  <p>Dünya Zamanı: <span id="dunyaTime">0</span></p>
+  <p>Uzay Zamanı: <span id="uzayTime">0</span></p>
+
+  <button onclick="accelerate()">🚀 Hızlan</button>
+  <button onclick="stopGame()">⏹ Bitir</button>
+</div>
+
+<div id="result" class="box" style="display:none;"></div>
+
+<script>
+let dunya = 0;
+let uzay = 0;
+let speed = 1;
+let interval;
+
+function start(role) {
+  document.getElementById("game").style.display = "block";
+  document.getElementById("role").innerText = 
+    role === "uzay" ? "Uzay İkizisin!" : "Dünya İkizisin!";
+
+  interval = setInterval(() => {
+    dunya += 1;
+    uzay += 1 / speed;
+
+    document.getElementById("dunyaTime").innerText = dunya.toFixed(1);
+    document.getElementById("uzayTime").innerText = uzay.toFixed(1);
+  }, 1000);
+}
+
+function accelerate() {
+  speed += 0.5;
+  alert("Hız arttı! Zaman yavaşlıyor 🚀");
+}
+
+function stopGame() {
+  clearInterval(interval);
+
+  let fark = dunya - uzay;
+
+  document.getElementById("result").style.display = "block";
+  document.getElementById("result").innerHTML = `
+    <h2>📊 Sonuç</h2>
+    <p>Dünya Zamanı: ${dunya.toFixed(1)}</p>
+    <p>Uzay Zamanı: ${uzay.toFixed(1)}</p>
+    <h3>⏳ Yaş Farkı: ${fark.toFixed(1)}</h3>
+  `;
+}
+</script>
+
+</body>
+</html>
